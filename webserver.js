@@ -187,7 +187,7 @@ ZAutomationAPIWebRequest.prototype.listWidgetClasses = function () {
 ZAutomationAPIWebRequest.prototype.dispatchRequest = function (method, url) {
     // Default handler is NotFound
     var handlerFunc = this.NotFound;
-
+    console.log('Dispatch URL: ' + url)
     // Test exact URIs
     if ("GET" === method && "/devices/" == url) {
         handlerFunc = this.listDevices;
