@@ -16,7 +16,7 @@
 				"items": {
 					"field": "enum",
 					"datasource": "namespaces",
-					"enum": "namespaces:switches:switchId,namespaces:devices_switchBinary:deviceId,namespaces:devices_switchMultilevel:deviceId",
+					"enum": "namespaces:devices_switchControl:deviceId,namespaces:devices_switchBinary:deviceId,namespaces:devices_switchMultilevel:deviceId",
 					"required": true
 				}
 			},
@@ -38,9 +38,10 @@
 				"label": "List of event sources",
 				"fields": {
 					"item": {
+						"type": "select",
 						"datasource": "namespaces",
 						"field": "optionLabels",
-						"optionLabels": "namespaces:switches:switchName,namespaces:devices_switchBinary:deviceName,namespaces:devices_switchMultilevel:deviceName"
+						"optionLabels": "namespaces:devices_switchControl:deviceName,namespaces:devices_switchBinary:deviceName,namespaces:devices_switchMultilevel:deviceName"
 					}
 				}
 			},
@@ -48,6 +49,7 @@
 				"label": "List of actors",
 				"fields": {
 					"item": {
+						"type": "select",
 						"datasource": "namespaces",
 						"field": "optionLabels",
 						"optionLabels": "namespaces:devices_switchBinary:deviceName,namespaces:devices_switchMultilevel:deviceName,namespaces:devices_doorlock:deviceName"

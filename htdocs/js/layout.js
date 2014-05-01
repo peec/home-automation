@@ -93,7 +93,7 @@ define([
             });
 
             that.listenTo(that.Devices, 'change:tags', function () {
-                _.each(_.without(_.uniq(_.flatten(that.Devices.pluck('tags'))), 'sensor'), function (type) {
+                _.each(_.uniq(_.flatten(that.Devices.pluck('tags'))), function (type) {
                     that.addTagToFilter(type);
                 });
             });
@@ -104,6 +104,7 @@ define([
 
         addEventToList: function (model) {
             var notice = model.toJSON(), $template, that = this;
+
             if (!that.$eventsContainer.children().length) {
                 that.$eventsContainer.empty();
             }
@@ -120,13 +121,11 @@ define([
                         ModalHelper.hideAll();
                         that.$eventsContainer.empty().text('Everything is ok');
                     }
-
                 });
 
                 $template.find('.read').off().on('click', function () {
                     that.deleted.push(model);
                     that.Notifications.remove(model);
-
                 });
 
                 that.$eventsContainer.append($template);
@@ -247,7 +246,7 @@ define([
                         types: false
                     };
                 } else if (type === 'tags') {
-                    _.each(_.without(_.uniq(_.flatten(that.Devices.pluck('tags'))), 'sensor'), function (type) {
+                    _.each(_.compact(_.without(_.uniq(_.flatten(that.Devices.pluck('tags'))), 'sensor')), function (type) {
                         that.addTagToFilter(type);
                     });
                     $allTemplate.on('click', function (e) {
@@ -283,28 +282,19 @@ define([
                     grid: [ 10, 10 ],
                     handle: '.small-border, .button-select-border',
                     scroll: false,
-                    snap: true,
                     snapMode: "outer",
-                    snapTolerance: 10,
                     containment: "parent",
                     stop: function (event, ui) {
                         var xPos = ui.position.left,
                             yPos = ui.position.top,
-                            device = App.Devices.get($(this).attr('data-widget-id')),
-                            profile = App.Profiles.findWhere({active: true}),
-                            widgets = profile.get('widgets'),
-                            model = _.find(widgets, function (widget) {return device.id === widget.id; }),
-                            index = widgets.indexOf(model);
+                            deviceId = $(this).attr('data-widget-id'),
+                            deviceFromProfile = App.Profiles.getDevice(deviceId);
 
-                        widgets[index] = {
-                            id: device.id,
-                            position: {
-                                x: xPos,
-                                y: yPos
-                            }
-                        };
 
-                        profile.save({widgets: widgets});
+                        deviceFromProfile.position.x = xPos;
+                        deviceFromProfile.position.y = yPos;
+
+                        window.App.Profiles.setDevice(deviceFromProfile);
                     }
                 });
             });
@@ -313,11 +303,11 @@ define([
             var that = this,
                 hash = window.location.hash.match(/(?:[a-z]+){2}/) ? window.location.hash.match(/(?:[a-z]+){2}/)[0] : '';
             if (hash === 'widgets') {
-                that.$header.find('.header-box-sub-nav-rooms').removeClass('hidden').hide().slideDown('fast');
-                that.$header.find('.header-box-sub-nav').removeClass('hidden').hide().slideDown('fast');
+                that.$header.find('.header-box-sub-nav-rooms').slideDown('fast');
+                that.$header.find('.header-box-sub-nav').slideDown('fast');
             } else {
-                that.$header.find('.header-box-sub-nav-rooms').hide().slideUp('fast');
-                that.$header.find(".header-box-sub-nav").hide().slideUp('fast');
+                that.$header.find('.header-box-sub-nav-rooms').slideUp('fast');
+                that.$header.find(".header-box-sub-nav").slideUp('fast');
             }
         },
         clear: function () {

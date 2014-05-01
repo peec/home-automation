@@ -1,7 +1,8 @@
 define([
     "helpers/apis",
     "backbone",
-    "text!templates/widgets/switch-small.html"
+    "text!templates/widgets/switch-small.html",
+    'colpick'
 ], function (Apis, Backbone, templateSwitch) {
     'use strict';
 
@@ -16,7 +17,8 @@ define([
         },
         render: function () {
             var that = this,
-                model = that.model;
+                model = that.model,
+                color;
 
             that.$template = $(_.template(templateSwitch, model.toJSON()));
 
@@ -26,19 +28,15 @@ define([
                 that.$template.removeClass('clear');
             }
 
-            that.listenTo(window.App.Devices, 'settings normal', function () {
-                that.$template.toggleClass('clear');
+            that.listenTo(window.App.Devices, 'settings', function () {
+                that.$template.removeClass('clear');
             });
 
-            that.listenTo(that.model, 'destroy reset', function () {
-                that.$template.remove();
-                that.remove();
+            that.listenTo(window.App.Devices, 'normal', function () {
+                that.$template.addClass('clear');
             });
 
-            that.listenTo(window.App.Devices, 'reset', function () {
-                that.$template.remove();
-                that.remove();
-            });
+            that.$template.hide();
 
             that.listenTo(model, 'show', function () {
                 that.$template.removeClass('show').addClass('show').show('fast');
@@ -48,10 +46,9 @@ define([
                 that.$template.removeClass('show').hide('fast');
             });
 
-            that.listenTo(that.model, 'change', function () {
+            that.listenTo(that.model, 'change:metrics', function () {
                 that.$template.find('.title-container').text(that.model.get('metrics').title);
-
-                if (String(that.model.get('metrics').level) === 'true') {
+                if (that.model.get('metrics').level === 'on') {
                     that.$template.find(".action").addClass('active').attr({title: 'ON'});
                     that.$template.find(".switch-door").addClass('active');
                     that.$template.find(".switch-door").find('.text').text('ON');
@@ -77,6 +74,22 @@ define([
                         .find('.text').text(command.toUpperCase());
                 });
             });
+
+            if (that.model.get('deviceType') === 'switchRGBW') {
+                color = _.isObject(model.get('metrics').color) ? model.get('metrics').color : {r: 255, g: 255, b: 255};
+
+                that.$template.find('.picker').colpick({
+                    colorScheme: 'dark',
+                    layout: 'rgbhex',
+                    color: rgbToHex(color.r, color.g, color.b),
+                    onSubmit: function (hsb, hex, rgb, el) {
+                        $(el).css('background-color', '#' + hex);
+                        $(el).colpickHide();
+                        Apis.devices.command(that.model.get('id'), 'exact', {red: rgb.r, green: rgb.g, blue: rgb.b});
+                    }
+                }).css({'background-color': rgbToHex(color.r, color.g, color.b, '#')});
+                that.$template.find('.colors-container').show();
+            }
 
             if (!$('div[data-widget-id="' + that.model.id + '"]').exists()) {
                 that.$el.append(that.$template);

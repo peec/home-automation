@@ -3,7 +3,7 @@
 	"singleton": true,
 	"userView": true,
 	"defaults": {
-		"title": "Switch Controls generator",
+		"title": "Trap events from Remotes and Sensors",
 		"description": "Generates new widgets on the fly for Remote Switch Controls and other devices sending control commands to controller",
 		"generated": [],
 		"banned": []
@@ -14,9 +14,10 @@
 			"generated": {
 				"type": "array",
 				"items": {
+					"type": "select",
 					"field": "enum",
 					"datasource": "namespaces",
-					"enum": "namespaces:switches:switchId",
+					"enum": "namespaces:devices_switchControl:deviceId",
 					"required": true
 				}
 			},
@@ -25,7 +26,7 @@
 				"items": {
 					"field": "enum",
 					"datasource": "namespaces",
-					"enum": "namespaces:switches:switchId",
+					"enum": "namespaces:devices_switchControl:deviceId",
 					"required": true
 				}
 			}
@@ -38,9 +39,10 @@
 				"label": "List of switches to instanciate (filled automatically)",
 				"fields": {
 					"item": {
+						"type": "select",
 						"datasource": "namespaces",
 						"field": "optionLabels",
-						"optionLabels": "namespaces:switches:switchName"
+						"optionLabels": "namespaces:devices_switchControl:deviceName"
 					}
 				}
 			},
@@ -48,9 +50,10 @@
 				"label": "List of switches not to instanciate",
 				"fields": {
 					"item": {
+						"type": "select",
 						"datasource": "namespaces",
 						"field": "optionLabels",
-						"optionLabels": "namespaces:switches:switchName"
+						"optionLabels": "namespaces:devices_switchControl:deviceName"
 					}
 				}
 			}

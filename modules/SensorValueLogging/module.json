@@ -3,7 +3,7 @@
     "userView": true,
     "singleton": false,
     "defaults": {
-        "title": "Sensor logging",
+        "title": "Sensor values logging",
         "description": "Store sensor values in JSON file or via HTTP requests to your server",
         "device": ""
     },

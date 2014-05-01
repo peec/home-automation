@@ -26,6 +26,8 @@ define([
                 that.$template.removeClass('clear');
             }
 
+            that.$template.hide();
+
             that.listenTo(model, 'show', function () {
                 that.$template.removeClass('show').addClass('show').show('fast');
             });
@@ -34,7 +36,7 @@ define([
                 that.$template.removeClass('show').hide('fast');
             });
 
-            that.listenTo(that.model, 'change', function () {
+            that.listenTo(that.model, 'change:metrics', function () {
                 that.$template.find('.title-container').text(that.model.get('metrics').title);
                 if (parseInt(that.model.get('metrics').mode) !== 255) {
                     that.$template.find('.action').addClass('active').attr({title: 'Open'});
@@ -47,18 +49,12 @@ define([
                 }
             });
 
-            that.listenTo(that.model, 'destroy reset', function () {
-                that.$template.remove();
-                that.remove();
+            that.listenTo(window.App.Devices, 'settings', function () {
+                that.$template.removeClass('clear');
             });
 
-            that.listenTo(window.App.Devices, 'reset', function () {
-                that.$template.remove();
-                that.remove();
-            });
-
-            that.listenTo(window.App.Devices, 'settings normal', function () {
-                that.$template.toggleClass('clear');
+            that.listenTo(window.App.Devices, 'normal', function () {
+                that.$template.addClass('clear');
             });
 
             that.$template.find('.action').on('click', function (e) {
@@ -66,7 +62,7 @@ define([
                 var $button = $(this),
                     command = parseInt(that.model.get('metrics').mode) !== 255 ? 'close' : 'open';
 
-                Apis.devices.command(model.get('id'), command, {}, function (json) {
+                Apis.devices.command(model.get('id'), command, {}, function () {
                     //log(json);
                     $button
                         .toggleClass('active')

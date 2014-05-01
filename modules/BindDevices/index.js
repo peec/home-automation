@@ -30,43 +30,74 @@ BindDevices.prototype.init = function (config) {
 
     var self = this;
 
-    this.handler = function (deviceId, metric, value) {
-        if (in_array(self.config.sourceDevices, deviceId) && "level" === metric) {
-            var that = self;
-            
-            var actionBinary = null;
-            var actionMultilevel = null;
-            
-            if (value === 255 || value === true || value === "on") {
-                actionBinary = "on";
-            } else if (value === 0 || value === false || value === "off") {
-                actionBinary = "off";
-            } else {
-                actionBinary = "on";
-                actionMultilevel = value;
-            }
-            
-            self.config.targetDevices.forEach(function(el) {
-                var vDev = that.controller.findVirtualDeviceById(el);
-                
-                if (vDev) {
-                    if (vDev.deviceType === "switchBinary" || vDev.deviceType === "scene" || vDev.deviceType === "swtichMultilevel" && actionMultilevel === null) {
-                        vDev.performCommand(actionBinary);
-                        console.log(actionBinary, vDev.id);
-                    } else if (vDev.deviceType === "swtichMultilevel") {
-                            vDev.performCommand("exact", actionMultilevel);
-                    }
-                }
-            });
+    this.handlerLevel = function (sDev) {
+        var that = self,
+            actionBinary = null,
+            actionMultilevel = null,
+            value = sDev.get("metrics:level");
+        
+        if (value === 255 || value === true || value === "on") {
+            actionBinary = "on";
+        } else if (value === 0 || value === false || value === "off") {
+            actionBinary = "off";
+        } else {
+            actionBinary = "on";
+            actionMultilevel = value;
         }
+        
+        self.config.targetDevices.forEach(function(el) {
+            var vDev = that.controller.devices.get(el);
+            
+            if (vDev) {
+                if (vDev.get("deviceType") === "switchBinary" || vDev.get("deviceType") === "scene" || vDev.get("deviceType") === "swtichMultilevel" && actionMultilevel === null) {
+                    vDev.performCommand(actionBinary);
+                } else if (vDev.get("deviceType") === "swtichMultilevel") {
+                    vDev.performCommand("exact", actionMultilevel);
+                }
+            }
+        });
+    };
+
+    this.handlerChange = function (sDev) {
+        var action = sDev.get("metrics:change");
+        
+        self.config.targetDevices.forEach(function(el) {
+            var vDev = self.controller.devices.get(el);
+            
+            if (vDev) {
+                if (vDev.get("deviceType") === "swtichMultilevel") {
+                    vDev.performCommand(action);
+                }
+            }
+        });
     };
 
     // Setup metric update event listener
-    this.controller.on('device.metricUpdated', this.handler);
+    this.controller.devices.filter(function(xDev) {
+        return in_array(self.config.sourceDevices, xDev.id);
+    }).map(function (yDev) {
+        self.controller.devices.get(yDev.id).on('change:metrics:level', self.handlerLevel);
+    });
+    this.controller.devices.filter(function(xDev) {
+        return in_array(self.config.sourceDevices, xDev.id);
+    }).map(function (yDev) {
+        self.controller.devices.get(yDev.id).on('change:metrics:change', self.handlerChange);
+    });
 };
 
 BindDevices.prototype.stop = function () {
-    this.controller.off('device.metricUpdated', this.handler);
+    var self = this;
+    
+    this.controller.devices.filter(function(xDev) {
+        return in_array(self.config.sourceDevices, xDev.id);
+    }).map(function (yDev) {
+        self.controller.devices.get(yDev.id).off('change:metrics:level', self.handlerLevel);
+    });
+    this.controller.devices.filter(function(xDev) {
+        return in_array(self.config.sourceDevices, xDev.id);
+    }).map(function (yDev) {
+        self.controller.devices.get(yDev.id).off('change:metrics:change', self.handlerChange);
+    });
 
     BindDevices.super_.prototype.stop.call(this);
 };

@@ -30,20 +30,18 @@ define([
                 that.$template.removeClass('clear');
             }
 
-            $popup.find('.ui-icon').on('click', function (e) {
-                e.preventDefault();
-                getUrl($(this).attr('data-url'));
-            });
+            that.$template.hide();
 
-            that.$template.find('.ui-icon').on('click', function (e) {
+            that.$template.find('.command-button').off().on('click', function (e) {
                 e.preventDefault();
-                getUrl($(this).attr('data-url'));
+                Apis.devices.command(that.model.get('id'), $(this).attr('data-command'), {});
             });
 
             $(cameraImage).on('load', function () {
                 that.$template.find('.camera-image').attr({'src': $(cameraImage).attr('src')});
                 that.loadImage = true;
             });
+
 
             that.listenTo(model, 'show', function () {
                 that.$template.removeClass('show').addClass('show').show('fast');
@@ -53,45 +51,24 @@ define([
                 that.$template.removeClass('show').hide('fast');
             });
 
-            that.listenTo(that.model, 'change', function () {
+            that.listenTo(that.model, 'change:metrics', function () {
                 that.$template.find('.title-container').text(that.model.get('metrics').title);
             });
 
-            that.listenTo(window.App.Devices, 'settings normal', function () {
-                that.$template.toggleClass('clear');
+            that.listenTo(window.App.Devices, 'settings', function () {
+                that.$template.removeClass('clear');
             });
 
-            that.listenTo(that.model, 'destroy reset', function () {
-                that.$template.remove();
-                that.remove();
-            });
-
-            that.listenTo(window.App.Devices, 'reset', function () {
-                that.$template.remove();
-                that.remove();
+            that.listenTo(window.App.Devices, 'normal', function () {
+                that.$template.addClass('clear');
             });
 
             that.$template.find('.view-block').on('click', function (e) {
                 e.preventDefault();
 
-                $popup.find('.havePan-btn').on('click', function (e) {
+                $popup.find('.command-button').off().on('click', function (e) {
                     e.preventDefault();
-                    Apis.devices.command(that.model.get('id'), 'havePan', {});
-                });
-
-                $popup.find('.haveTilt-btn').on('click', function (e) {
-                    e.preventDefault();
-                    Apis.devices.command(that.model.get('id'), 'haveTilt', {});
-                });
-
-                $popup.find('.haveZoom-btn').on('click', function (e) {
-                    e.preventDefault();
-                    Apis.devices.command(that.model.get('id'), 'haveZoom', {});
-                });
-
-                $popup.find('.haveOpen-btn').on('click', function (e) {
-                    e.preventDefault();
-                    Apis.devices.command(that.model.get('id'), 'haveOpen', {});
+                    Apis.devices.command(that.model.get('id'), $(this).attr('data-command'), {});
                 });
 
                 if (!that.loadImage) {

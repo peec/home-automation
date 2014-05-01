@@ -30,21 +30,28 @@ LightScene.prototype.init = function (config) {
 
     var self = this;
 
-    this.controller.emit("scenes.register", this.id, this.config.title, function() {
+    this.vDev = this.controller.devices.create("LightScene_" + this.id, {
+        deviceType: "toggleButton",
+        metrics: {
+            level: '',
+            icon: '',
+            title: 'Light Scene ' + this.id
+        }
+    }, function () {
         self.config.switches.forEach(function(devState) {
-            var vDev = self.controller.findVirtualDeviceById(devState.device);
+            var vDev = self.controller.devices.get(devState.device);
             if (vDev) {
-                vDev.performCommand(devState.status ? "on" : "off");
+                vDev.performCommand(devState.status);
             }
         });
         self.config.dimmers.forEach(function(devState) {
-            var vDev = self.controller.findVirtualDeviceById(devState.device);
+            var vDev = self.controller.devices.get(devState.device);
             if (vDev) {
                 vDev.performCommand("exact", devState.state);
             }
         });
         self.config.scenes.forEach(function(scene) {
-            var vDev = self.controller.findVirtualDeviceById(scene);
+            var vDev = self.controller.devices.get(scene);
             if (vDev) {
                 vDev.performCommand("on");
             }
@@ -53,7 +60,10 @@ LightScene.prototype.init = function (config) {
 };
 
 LightScene.prototype.stop = function () {
-    this.controller.emit("scenes.unregister", this.id);
+    if (this.vDev) {
+        this.controller.devices.remove(this.vDev.id);
+        this.vDev = null;
+    }
 
     LightScene.super_.prototype.stop.call(this);
 };

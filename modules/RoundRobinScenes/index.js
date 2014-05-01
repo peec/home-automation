@@ -32,11 +32,18 @@ RoundRobinScenes.prototype.init = function (config) {
 
     var self = this;
     
-    this.controller.emit("scenes.register", this.id, this.config.title, function() {
+    this.vDev = this.controller.devices.create("RoundRobinScene_" + this.id, {
+        deviceType: "toggleButton",
+        metrics: {
+            level: '',
+            icon: '',
+            title: 'Round Robin Scene ' + this.id
+        }
+    }, function() {
         self.currentSceneIndex++;
         self.currentSceneIndex %= self.config.scenes.length;
         
-        var vDev = self.controller.findVirtualDeviceById(self.config.scenes[self.currentSceneIndex]);
+        var vDev = self.controller.devices.get(self.config.scenes[self.currentSceneIndex]);
         if (vDev) {
             vDev.performCommand("on");
         }
@@ -44,7 +51,10 @@ RoundRobinScenes.prototype.init = function (config) {
 };
 
 RoundRobinScenes.prototype.stop = function () {
-    this.controller.emit("scenes.unregister", this.id);
+    if (this.vDev) {
+        this.controller.devices.remove(this.vDev.id);
+        this.vDev = null;
+    }
 
     RoundRobinScenes.super_.prototype.stop.call(this);
 };

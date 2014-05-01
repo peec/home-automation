@@ -42,11 +42,11 @@ function inherits (ctor, superCtor) {
 }
 
 function in_array (array, value) {
-    return -1 != array.indexOf(value);
+    return -1 !== array.indexOf(value);
 }
 
 function has_key (obj, key) {
-    return -1 != Object.keys(obj).indexOf(key);
+    return -1 !== Object.keys(obj).indexOf(key);
 }
 
 function get_values (obj) {
@@ -60,8 +60,6 @@ function get_values (obj) {
 }
 
 //--- Load configuration
-
-
 var config, files, templates, schemas, modules, namespaces;
 try {
     config = loadObject("config.json") || {
@@ -84,20 +82,20 @@ if (!config) {
     config.classesPath = "classes";
     config.resourcesPath = "res";
 
-    //--- Load constants & 3d-party dependencies
+    //--- Load 3d-party dependencies
 
-    executeFile("constants.js");
     executeFile(config.libPath + "/eventemitter2.js");
     executeFile(config.libPath + "/underscore-min.js");
 
     //--- Load router
     //executeFile(config.libPath + "/Router.js");
 
-    //--- Load Automation subsystem classes
+    executeFile(config.classesPath + "/VirtualDevice.js");
 
+    //--- Load Automation subsystem classes
+    executeFile(config.classesPath + "/DevicesCollection.js");
     executeFile(config.classesPath + "/AutomationController.js");
     executeFile(config.classesPath + "/AutomationModule.js");
-    executeFile(config.classesPath + "/VirtualDevice.js");
     executeFile("request.js");
     executeFile("webserver.js");
     executeFile("storage.js");

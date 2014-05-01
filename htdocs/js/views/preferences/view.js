@@ -11,9 +11,9 @@ define([
     'text!templates/popups/_profile.html',
     'dragsort',
     'magicsuggest'
-], function (Backbone, ModalHelper, Apis, Location, Profile, ModulesView, PreferencesPopupTmp, RoomTmp, WidgetTmp, ProfileTmp, TagTmp) {
+], function (Backbone, ModalHelper, Apis, Location, Profile, ModulesView, PreferencesPopupTmp, RoomTmp, WidgetTmp, ProfileTmp) {
     'use strict';
-    var PreferencesView = Backbone.View.extend({
+    return Backbone.View.extend({
 
         initialize: function () {
             var that = this;
@@ -101,7 +101,6 @@ define([
                     merge: true
                 });
 
-
                 ModalHelper.popup(that.$template, true, true);
                 that.$template.find('.back-button').click();
             });
@@ -138,11 +137,7 @@ define([
                     that.$modulesMenu.find('li').removeClass('active');
 
                     if (!$this.hasClass('active')) {
-                        if ($this.attr('data-type') === 'modules') {
-                            that.modulesView.renderModules();
-                        } else {
-                            that.modulesView.renderInstances();
-                        }
+                        that.modulesView.renderInstances();
                     }
 
                     $this.addClass('active');
@@ -169,7 +164,7 @@ define([
                 tags = device.get('tags'),
                 ms,
                 profile,
-                widgets,
+                widget,
                 active;
 
             device.on('change:metrics', function () {
@@ -178,7 +173,7 @@ define([
             });
 
             $device.on('click', function () {
-                active = _.any(App.Profiles.findWhere({active: true}).get('widgets'), function (widget) { return widget.id === device.id; });
+                active = that.Profiles.isShow(device.id);
                 that.$ListContainer.find('li').removeClass('active');
                 $device.addClass('active');
                 $deviceTmp = $(_.template(WidgetTmp, {device: device.toJSON(), widget: active}));
@@ -189,22 +184,9 @@ define([
                 $deviceTmp.show('fast');
 
                 $deviceTmp.find('.input-dashboard').on('change', function () {
-                    profile = that.Profiles.findWhere({active: true});
-                    widgets = profile.get('widgets');
-                    if ($(this).prop('checked')) {
-                        if (!_.any(widgets, function (widget) { return widget.id === device.id; })) {
-                            widgets.push({
-                                id: device.get('id'),
-                                position: {x: null, y: null}
-                            });
-                        }
-                    } else {
-                        widgets = widgets.filter(function (widget) {
-                            return widget.id !== device.id;
-                        });
-                    }
-                    profile.save({widgets: widgets});
-                    window.App.Devices.trigger('refresh');
+                    widget = that.Profiles.getDevice(device.id);
+                    widget.show = !!$(this).prop('checked');
+                    App.Profiles.setDevice(widget);
                 });
 
                 ms = $deviceTmp.find('#ms-gmail').magicSuggest({
@@ -218,33 +200,25 @@ define([
                     $(ms).setValue(tags);
                 });
 
-                $('#inputTitleText').on('keyup', function () {
-                    var metrics = device.get('metrics');
-                    metrics.title = $(this).val();
-                    device.save({metrics: metrics});
-                    device.trigger('change:metrics');
-                });
-
                 $(ms).on('blur', function () {
-                    var savedParam;
-                    if (this.getValue().indexOf('dashboard') === -1) {
-                        savedParam = {
-                            tags: this.getValue(),
-                            position: {
-                                top: 0,
-                                left: 0
-                            }
-                        };
-                    } else {
-                        savedParam = {
-                            tags: this.getValue()
-                        };
-                    }
-
-                    device.save(savedParam);
                     this.setValue(this.getValue());
                     tags = this.getValue();
+                    device.set({
+                        tags: tags
+                    });
                     avalaibleTags = that.getTags();
+                });
+
+                $deviceTmp.find('.save-button').on('click', function (e) {
+                    e.preventDefault();
+                    var metrics = device.get('metrics');
+                    metrics.title = $deviceTmp.find('#inputTitleText').val();
+                    metrics.icon = $deviceTmp.find('#inputIcon').val();
+                    $device.text(metrics.title);
+                    device.save({
+                        metrics: metrics
+                    });
+                    device.trigger('change:metrics');
                 });
             });
 
@@ -395,7 +369,6 @@ define([
                 that.$ListContainer.find('li').removeClass('active');
                 $location.addClass('active');
                 $template = $(_.template(RoomTmp, json));
-
 
                 $template.on('keyup', function (e) {
                     if (e.which === 13) {
@@ -572,9 +545,7 @@ define([
             if (tags.indexOf('tags') === -1) {
                 tags.push('dashboard');
             }
-            return tags;
+            return _.compact(tags);
         }
     });
-
-    return PreferencesView;
 });

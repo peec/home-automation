@@ -25,24 +25,32 @@ define([
             options.data = options.data || {};
             options.url = model.methodToURL[method.toLowerCase()] + this.url();
 
-
             if (this.updateTime !== undefined && !this.structureChanged) {
                 options.data.since = this.updateTime;
-            } else if (this.structureChanged) {
-                options.data.since = 0;
-                this.structureChanged = false;
-                this.reset();
             }
 
             Backbone.sync(method, model, options);
         },
 
         parse: function (response, xhr) {
+            var that = this,
+                list = [];
+
+            if (response.data.structureChanged) {
+                _.each(that.models, function (model) {
+                    if (!_.any(response.data.devices, function (dev) { return model.id === dev.id; })) {
+                        log('Remove model ' + model.id);
+                        that.remove(model);
+                    }
+                });
+            }
+
             this.updateTime = response.data.updateTime;
             return response.data.devices;
         },
 
         initialize: function () {
+            _.bindAll(this, 'parse');
            log('init devices');
         }
 

@@ -12,7 +12,6 @@ define([
 
         initialize: function () {
             var that = this;
-            _.bindAll(this, 'render', 'renderInstances', 'renderModules', 'newInstance');
 
             // Default collections and models
             that.Instances = window.App.Instances;
@@ -64,6 +63,11 @@ define([
             that.Instances.each(function (instance) {
                 that.renderInstanceList(instance);
             });
+            if (!Boolean(that.Instances.length)) {
+                that.newInstance();
+            } else {
+                that.$el.find('.items-list').children()[0].click();
+            }
         },
 
         renderInstanceList: function (instance) {
@@ -72,11 +76,10 @@ define([
 
             $instance = $("<li>" + instance.get('params').title + "</li>");
 
-            that.listenTo(instance, 'destroy', function () {
+            that.listenTo(instance, 'destroy reset remove', function () {
                 $instance.hide('fast', function () {
                     $instance.prev().click();
                     $instance.remove();
-                    App.Devices.reset({silent: true}).fetch();
                 });
             });
 
@@ -91,43 +94,38 @@ define([
                 that.instanceActive = instance.id;
                 $instance.addClass('active');
                 that.$el.find('.content-body').empty().append($template);
-
-                that.$el.find('.alpaca-form').empty().alpaca({
-                    data: instance.get('params'),
-                    schema: App.Modules.get(instance.get('moduleId')).get('schema'),
-                    options: App.Modules.get(instance.get('moduleId')).get('options'),
-                    postRender: function (form) {
-                        that.$el.find('.save-button').on('click', function (e) {
-                            e.preventDefault();
-                            var json = form.getValue();
-                            if (Validator.validate(json, App.Modules.get(instance.get('moduleId')).get('schema'))) {
-                                instance.save({params: json});
-                                $template.hide('fast', function () {
-                                    $template.off().remove();
-                                    $instance.removeClass('active');
-                                });
-                                that.$el.find('.alpaca-controlfield-message-text').css('color', '#222');
-                                window.App.Devices.since = 0;
-                                window.App.Devices.structureChanged = true;
-                                window.App.Devices.fetch({
-                                    success: function () {
-                                        window.App.Devices.trigger('refresh');
+                window.App.Instances.fetch();
+                window.App.Namespaces.fetch({
+                    success: function () {
+                        that.$el.find('.alpaca-form').empty().alpaca({
+                            data: instance.get('params'),
+                            schema: App.Modules.get(instance.get('moduleId')).get('schema'),
+                            options: App.Modules.get(instance.get('moduleId')).get('options'),
+                            postRender: function (form) {
+                                that.$el.find('.save-button').off().on('click', function (e) {
+                                    e.preventDefault();
+                                    var json = form.getValue();
+                                    if (Validator.validate(json, App.Modules.get(instance.get('moduleId')).get('schema'))) {
+                                        instance.save({params: json});
+                                        $template.hide('fast', function () {
+                                            $template.off().remove();
+                                            $instance.removeClass('active');
+                                        });
+                                        that.$el.find('.alpaca-controlfield-message-text').css('color', '#222');
+                                        window.App.Instances.fetch();
+                                        window.App.Namespaces.fetch();
+                                    } else {
+                                        that.$el.find('.alpaca-controlfield-message-text').css('color', 'red');
                                     }
                                 });
-                            } else {
-                                that.$el.find('.alpaca-controlfield-message-text').css('color', 'red');
                             }
                         });
+                        that.$el.find('.alpaca-controlfield-message-text').css('color', '#222');
                     }
                 });
-                that.$el.find('.alpaca-controlfield-message-text').css('color', '#222');
             });
 
             that.$el.find('.items-list').append($instance);
-        },
-
-        renderModules: function () {
-            var that = this;
         },
 
         newInstance: function () {
@@ -151,7 +149,7 @@ define([
                     schema: App.Modules.get($this.val()).get('schema'),
                     options: App.Modules.get($this.val()).get('options'),
                     postRender: function (form) {
-                        that.$el.find('.save-button').on('click', function (e) {
+                        that.$el.find('.save-button').off().on('click', function (e) {
                             e.preventDefault();
                             var json = form.getValue(),
                                 instance = new Instance();

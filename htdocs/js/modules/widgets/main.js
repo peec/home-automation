@@ -24,10 +24,10 @@ define([
             var that = this;
             that.fixedPosition = fixedPosition || null;
             if (that.Devices.length > 0) {
-                that.$el.empty();
                 if (!$("#devices-container").exists()) {
                     $('#main-region').append('<section id="devices-container" class="widgets"></section>');
                 }
+
                 that.Devices.each(function (device) {
                     that.renderWidget(device, forceView);
                 });
@@ -35,11 +35,11 @@ define([
         },
         renderWidget: function (model, forceView) {
             var that = this,
-                modelView = null;
+                modelView = model.view || null;
 
 
-            if (_.any(App.Profiles.findWhere({active: true}).get('widgets'), function (widget) { return widget.id === model.id; }) || forceView) {
-                if (model.get('deviceType') === "probe" || model.get('deviceType') === "battery") {
+            if (!modelView) {
+                if (model.get('deviceType') === "sensorBinary" || model.get('deviceType') === "sensorMultilevel" || model.get('deviceType') === "battery") {
                     modelView = new ProbeWidgetView({model: model});
                 } else if (model.get('deviceType') === "fan") {
                     modelView = new FanWidgetView({model: model});
@@ -49,7 +49,7 @@ define([
                     modelView = new ThermostatView({model: model});
                 } else if (model.get('deviceType') === "doorlock") {
                     modelView = new DoorLockView({model: model});
-                } else if (model.get('deviceType') === "switchBinary") {
+                } else if (model.get('deviceType') === "switchBinary" || model.get('deviceType') === "switchRGBW") {
                     modelView = new SwitchView({model: model});
                 } else if (model.get('deviceType') === "toggleButton") {
                     modelView = new ToggleView({model: model});
@@ -60,23 +60,56 @@ define([
                 } else {
                     //log(model);
                 }
+            }
 
-                if (modelView) {
+
+            if (modelView) {
+                if (!model.view) {
+                    model.view = modelView;
                     modelView.render();
-                    if (that.fixedPosition) {
-                        that.setPosition(modelView);
-                    }
+                }
+
+                that.listenTo(model, 'remove', function () {
+                    modelView.getTemplate().fadeOut(function () {
+                        modelView.getTemplate().remove();
+                    });
+                });
+
+                that.showingControl(modelView, model, forceView);
+
+                if (that.fixedPosition) {
+                    that.setPosition(modelView);
+                } else {
+                    that.clearPosition(modelView);
                 }
             }
         },
         setPosition: function (modelView) {
-            var position = _.find(App.Profiles.findWhere({active: true}).get('widgets'), function (widget) { return widget.id === modelView.model.id; }).position,
+            var device = App.Profiles.getDevice(modelView.model.id),
                 $template = modelView.getTemplate();
 
-            $template.css({
-                top: position.y,
-                left: position.x
+            $template.animate({
+                top: device.position.y,
+                left: device.position.x
             });
+        },
+        clearPosition: function (modelView) {
+            var $template = modelView.getTemplate();
+            $template.animate({
+                top: 0,
+                left: 0
+            }, {
+                complete: function () {
+                    $template.removeAttr('style');
+                }
+            });
+        },
+        showingControl: function (modelView, forceView) {
+            var $template = modelView.getTemplate();
+            if (App.Profiles.isShow(modelView.model.id) || forceView) {
+                $template.show();
+                window.$tmp = $template;
+            }
         }
     });
 });

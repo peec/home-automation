@@ -3,8 +3,18 @@
     "singleton": false,
     "userView": true,
     "defaults": {
-        "title": "Camera",
-        "description": "This module include configuration for a camera and create camera device"
+        "title": "Web Camera",
+        "description": "This module include configuration for a camera and create camera device",
+	"url": "",
+	"zoomInUrl": "",
+	"zoomOutUrl": "",
+	"leftUrl": "",
+	"rightUrl": "",
+	"upUrl": "",
+	"downUrl": "",
+	"openUrl": "",
+	"closeUrl": "",
+	"doorDevices": []
     },
     "schema": {
         "type": "object",
@@ -44,6 +54,15 @@
             "closeUrl": {
                 "format": "uri",
                 "required": false
+            },
+            "doorDevices": {
+                "type": "array",
+                "items": {
+                    "field": "enum",
+                    "datasource": "namespaces",
+                    "enum": "namespaces:devices_doorlock:deviceId,namespaces:devices_switchBinary:deviceId",
+                    "required": false
+                }
             }
         },
         "required": false
@@ -94,6 +113,17 @@
                 "label": "Close URL",
                 "type": "url",
                 "required": false
+            },
+            "doorDevices": {
+                "label": "Door device",
+                "fields": {
+                    "item": {
+			"type": "select",
+                        "datasource": "namespaces",
+                        "field": "optionLabels",
+                        "optionLabels": "namespaces:devices_doorlock:deviceName,namespaces:devices_switchBinary:deviceName"
+                    }
+                }
             }
         }
     }

@@ -10,20 +10,21 @@ define([
 
         initialize: function () {
             _.bindAll(this, 'render', 'getTemplate');
-            var that = this,
-                model = that.model;
+            var that = this;
 
             that.Devices = window.App.Devices;
         },
         render: function () {
             var that = this,
-                model = that.model;
+                model = that.model,
+                level;
 
             that.$template = $(_.template(templateProbe, that.model.toJSON()));
 
-            that.listenTo(that.model, 'change', function () {
+            that.listenTo(that.model, 'change:metrics', function () {
+                level = _.isNumber(that.model.get('metrics').level) ? that.model.get('metrics').level    : that.model.get('metrics').level;
                 that.$template.find('.title-container').text(that.model.get('metrics').title);
-                that.$template.find(".probe-value").text(that.model.get('metrics').level.toFixed(1) + ' ' + that.model.get('metrics').scaleTitle);
+                that.$template.find('.probe-value').text(level + ' ' + that.model.get('metrics').scaleTitle);
             });
 
             if (!that.Devices.activeMode) {
@@ -32,18 +33,14 @@ define([
                 that.$template.removeClass('clear');
             }
 
-            that.listenTo(window.App.Devices, 'settings normal', function () {
-                that.$template.toggleClass('clear');
+            that.$template.hide();
+
+            that.listenTo(window.App.Devices, 'settings', function () {
+                that.$template.removeClass('clear');
             });
 
-            that.listenTo(that.model, 'destroy reset', function () {
-                that.$template.remove();
-                that.remove();
-            });
-
-            that.listenTo(window.App.Devices, 'reset', function () {
-                that.$template.remove();
-                that.remove();
+            that.listenTo(window.App.Devices, 'normal', function () {
+                that.$template.addClass('clear');
             });
 
             that.listenTo(model, 'show', function () {

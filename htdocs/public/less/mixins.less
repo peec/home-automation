@@ -1,3 +1,9 @@
+.box-shadow (@string) {
+  -webkit-box-shadow: @string;
+  -moz-box-shadow: @string;
+  box-shadow: @string;
+}
+
 .widget {
   display: inline-block;
   float: left;
@@ -88,6 +94,7 @@
         float: left;
         overflow: hidden;
         text-overflow: ellipsis;
+	white-space: nowrap;
         height: 46px;
       }
       .switch.active {
@@ -346,6 +353,14 @@
   .widget;
   height: 51px;
   line-height: 51px;
+  .title-container {
+    width: 110px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+    display: block;
+    float: left;
+  }
   .border-widget {
     .selection-button {
       margin-top: 14px;
@@ -401,6 +416,16 @@
       }
     }
   }
+  &.switchRGBW {
+    .colors-container {
+      float: right;
+      height: 34px;
+      margin-top: 6px;
+      .simplecolorpicker {
+        height: 34px;
+      }
+    }
+  }
 }
 
 .widget.clear,
@@ -439,6 +464,7 @@
     margin-right: 5px;
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
     float: left;
     font-size: 17px;
     font-family: "HelveticaNeue";

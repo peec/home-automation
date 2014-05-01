@@ -20,7 +20,7 @@ function AutomationController () {
     this.files = files || {};
 
     this.modules = {};
-    this.devices = {};
+    this.devices = new DevicesCollection(this);
     this.schemas = config.schemas || [];
 
     this.notifications = [];
@@ -73,7 +73,7 @@ AutomationController.prototype.start = function () {
 
     // Run webserver
     console.log("Starting webserver...");
-    api = new ZAutomationAPIWebRequest().handlerFunc();
+    api = new ZAutomationAPIWebRequest(this).handlerFunc();
 
     // Run storage
     console.log("Starting storage...");
@@ -196,6 +196,10 @@ AutomationController.prototype.instantiateModule = function (instanceModel) {
         module = _.find(self.modules, function (module) { return instanceModel.moduleId === module.meta.id; }),
         instance = null;
 
+    if (!module) {
+        self.addNotification("error", "Can not instanciate module: module not found in the list of all modules", "core");
+    }
+    
     if ((instanceModel.params.hasOwnProperty('status') && instanceModel.params.status === 'enable') || !instanceModel.params.hasOwnProperty('status')) {
         try {
             instance = new global[module.meta.id](instanceModel.id, self);
@@ -303,7 +307,13 @@ AutomationController.prototype.createInstance = function (moduleId, params) {
 };
 
 AutomationController.prototype.stopInstance = function (instance) {
-    instance.stop();
+    try {
+        instance.stop();
+    } catch (e) {
+        this.addNotification("error", "Can not stop module " + ((instance && instance.id) ? instance.id : "<unknow id>") + ": " + e.toString(), "core");
+        console.log(e.stack);
+        return;
+    }
     if (instance.meta.singleton) {
         var index = this._loadedSingletons.indexOf(instance.meta.id);
         if (index > -1) {
@@ -400,11 +410,11 @@ AutomationController.prototype.deviceExists = function (vDevId) {
 }
 
 AutomationController.prototype.getVdevInfo = function (id) {
-    return this.vdevInfo[id];
+    return this.vdevInfo[id] || {};
 }
 
 AutomationController.prototype.setVdevInfo = function (id, device) {
-    this.vdevInfo[id] = device;
+    this.vdevInfo[id] = _.pick(device, ["deviceType", "metrics", "location", "tags"]);
     this.saveConfig();
     return this.vdevInfo[id];
 }
@@ -593,13 +603,13 @@ AutomationController.prototype.createProfile = function (object) {
 };
 
 AutomationController.prototype.updateProfile = function (object, id) {
-    var profile = this.profiles.filter(function (profile) {
+    var profile = _.find(this.profiles, function (profile) {
             return profile.id === parseInt(id);
         }),
         index;
 
-    if (profile.length) {
-        index = this.profiles.indexOf(profile[0]);
+    if (!!profile) {
+        index = this.profiles.indexOf(profile);
 
         if (object.hasOwnProperty('name')) {
             this.profiles[index].name = object.name;
@@ -627,92 +637,33 @@ AutomationController.prototype.removeProfile = function (id) {
     this.saveConfig();
 };
 
-// Schemas
-
-AutomationController.prototype.getListSchemas = function (id) {
-    var result = null;
-    id = id || null;
-    if (id) {
-        result = this.schemas.filter(function (schema) {
-            return schema.id === parseInt(id);
-        })[0];
-    } else {
-        result = this.schemas;
-    }
-    return result;
-};
-
-AutomationController.prototype.createSchema = function (object) {
-    var id = this.schemas.length ? this.schemas[this.schemas.length - 1].id + 1 : 1,
-        schema;
-
-    schema = {
-        id: id,
-        title: object.title,
-        schema: object.schema
-    }
-
-    this.schemas.push(schema);
-    this.saveConfig();
-    return schema;
-};
-
-AutomationController.prototype.updateSchema = function (object, id) {
-    var result = null,
-        index,
-        schema;
-    id = id || null;
-
-
-    if (id) {
-        schema = this.schemas.filter(function (sch) {
-            return sch.id === parseInt(id);
-        });
-
-
-        if (schema.length) {
-            index = this.schemas.indexOf(schema[0]);
-
-            if (object.hasOwnProperty('title')) {
-                this.schemas[index].title = object.title;
-            }
-            if (object.hasOwnProperty('schema')) {
-                this.schemas[index].schema = object.schema;
-            }
-
-            result = this.schemas[index];
-        } else {
-            result = null;
-        }
-    } else {
-        result = null;
-    }
-
-    this.saveConfig();
-    return result;
-};
-
-
-AutomationController.prototype.removeSchema = function (id) {
-    id = id || null;
-
-    this.schemas = this.schemas.filter(function (schema) {
-        return schema.id !== parseInt(id);
-    });
-
-    this.saveConfig();
-};
-
 // namespaces
+AutomationController.prototype.generateNamespaces = function (callback) {
+    var that = this,
+        devices = that.devices.models,
+        deviceTypes = _.uniq(_.map(devices, function (device) { return device.toJSON().deviceType; }));
+
+    that.namespaces = [];
+    deviceTypes.forEach(function (type) {
+        that.setNamespace('devices_' + type, _.map(that.devices.where({deviceType: type}), function (device) {
+            return {deviceId: device.id, deviceName: device.metrics.title};
+        }));
+    });
+    callback(that.namespaces);
+};
+
 AutomationController.prototype.getListNamespaces = function (id) {
-    var result = null;
+    var result = null,
+        namespaces = this.namespaces;
+
     id = id || null;
-    if (id) {
-        result = this.namespaces.filter(function (namespace) {
+
+    if (!!id) {
+        result = namespaces.filter(function (namespace) {
             return namespace.id === parseInt(id);
         })[0];
     } else {
-        result = this.namespaces;
+        result = namespaces;
     }
 
     return result;
@@ -722,17 +673,26 @@ AutomationController.prototype.setNamespace = function (id, reqObj) {
     var result = null,
         namespace,
         index;
+
     id = id || null;
+
     if (id && this.getListNamespaces(id)) {
         namespace = _.find(this.namespaces, function (namespace) {
-            return namespace.id === parseInt(id);
+            return namespace.id === id;
         });
-        index = this.namespaces.indexOf(namespace);
-        this.namespaces[index].params = reqObj.data;
-        result = this.namespaces[index];
+        if (!!namespace) {
+            index = this.namespaces.indexOf(namespace);
+            this.namespaces[index].params = reqObj.data;
+            result = this.namespaces[index];
+        }
     } else {
+        this.namespaces.push({
+            id: id,
+            params: reqObj
+        })
         result = null;
     }
+
     return result;
 };
 
@@ -785,7 +745,3 @@ AutomationController.prototype.pushFile = function (file, callback) {
     saveObject(id, file);
     callback(this.files[id]);
 };
-
-AutomationController.prototype.findVirtualDeviceById = function(vdevId) {
-    return this.devices[vdevId] || null;
-}
